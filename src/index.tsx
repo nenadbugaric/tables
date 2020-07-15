@@ -1,9 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
+import ReactTable from './tables/react-table'
+
 ReactDOM.render(
   <React.StrictMode>
-    <h1>Hello World</h1>
+    <ReactTable />
   </React.StrictMode>,
   document.getElementById('root')
 );
