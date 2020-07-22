@@ -2,6 +2,8 @@ import React from "react";
 import { useTable } from "react-table";
 import styled from 'styled-components';
 
+import data from './data';
+
 const TABLE = styled.table`
   border: 1px solid black;
   border-collapse: collapse;
@@ -42,40 +44,6 @@ function sum(vals) {
 }
 
 export default function ReactTable() {
-  const data = React.useMemo(
-    () => [
-      {
-        chargeName: "Vorverkaufsgebühr",
-        chargeCode: "VVG-C, 4",
-        priceType: "KIND, Kind",
-        total: '514',
-        pk1: '74'
-      },
-      {
-        chargeName: "Vorverkaufsgebühr",
-        chargeCode: "VVG-C, 4",
-        priceType: "KIND, Kind",
-        total: '604',
-        pk1: '296'
-      },
-      {
-        chargeName: "Vorverkaufsgebühr",
-        chargeCode: "VVG-C, 4",
-        priceType: "SCHU, Schüler",
-        total: '265',
-        pk1: '0'
-      },
-      {
-        chargeName: "Vorverkaufsgebühr",
-        chargeCode: "VVG-C, 4",
-        priceType: "SCHU, Schüler",
-        total: '588.80',
-        pk1: '0'
-      },
-    ],
-    []
-  );
-
   const columns = React.useMemo(
     () => [
       {
@@ -118,8 +86,10 @@ export default function ReactTable() {
   } = useTable({ columns, data });
 
   return (
-    <TABLE {...getTableProps()} style={{ borderCollapse: 'collapse'}}>
-      <thead>
+    <div>
+      <h2>react-table</h2>
+      <TABLE {...getTableProps()} style={{ borderCollapse: 'collapse'}}>
+        <thead>
         {headerGroups.map((headerGroup) => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map((column) => {
@@ -131,9 +101,9 @@ export default function ReactTable() {
             })}
           </tr>
         ))}
-      </thead>
+        </thead>
 
-      <tbody {...getTableBodyProps()}>
+        <tbody {...getTableBodyProps()}>
         {rows.map((row) => {
           prepareRow(row);
           return (
@@ -152,7 +122,8 @@ export default function ReactTable() {
             </tr>
           );
         })}
-      </tbody>
-    </TABLE>
+        </tbody>
+      </TABLE>
+    </div>
   );
 }
