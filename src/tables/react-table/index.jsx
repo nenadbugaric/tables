@@ -1,20 +1,76 @@
 import React from "react";
 import { useTable } from "react-table";
+import styled from 'styled-components';
+
+const TABLE = styled.table`
+  border: 1px solid black;
+  border-collapse: collapse;
+`;
+const TH = styled.th`
+  border-right: 1px solid black;
+  border-top: 1px solid black;
+  background: ${(props) => {
+    const colors = {
+      isParent: 'gray',
+      isTotal: 'blue'
+    };
+    
+    const propsColors = Object.keys(props)
+      .filter(prop => props[prop]);
+
+    const propsToUse = Object.keys(colors)
+      .find(color => propsColors.includes(color))
+    
+    return !propsToUse
+      ? 'transparent'
+      : colors[propsToUse];
+}}
+`;
+const TD = styled.td`
+  border: 1px solid black;
+  border-bottom: none;
+  background: ${(props) => !props.isTotal ? 'transparent' : 'blue'}
+`;
+const TD_NONE = styled.td`
+  visibility: hidden;
+  border: none;
+  border-right: 1px solid black;
+`;
+
+function sum(vals) {
+  return vals.reduce((x, y) => x + y, 0);
+}
 
 export default function ReactTable() {
   const data = React.useMemo(
     () => [
       {
-        col1: "Hello",
-        col2: "World",
+        chargeName: "Vorverkaufsgebühr",
+        chargeCode: "VVG-C, 4",
+        priceType: "KIND, Kind",
+        total: '514',
+        pk1: '74'
       },
       {
-        col1: "react-table",
-        col2: "rocks",
+        chargeName: "Vorverkaufsgebühr",
+        chargeCode: "VVG-C, 4",
+        priceType: "KIND, Kind",
+        total: '604',
+        pk1: '296'
       },
       {
-        col1: "whatever",
-        col2: "you want",
+        chargeName: "Vorverkaufsgebühr",
+        chargeCode: "VVG-C, 4",
+        priceType: "SCHU, Schüler",
+        total: '265',
+        pk1: '0'
+      },
+      {
+        chargeName: "Vorverkaufsgebühr",
+        chargeCode: "VVG-C, 4",
+        priceType: "SCHU, Schüler",
+        total: '588.80',
+        pk1: '0'
       },
     ],
     []
@@ -23,12 +79,31 @@ export default function ReactTable() {
   const columns = React.useMemo(
     () => [
       {
-        Header: "Column 1",
-        accessor: "col1", // accessor is the "key" in the data
+        Header: "Ticket service charges",
+        columns: [
+          {
+            Header: "Charge name",
+            accessor: "chargeName",
+          },
+          {
+            Header: "Charge code,number",
+            accessor: "chargeCode",
+          },
+          {
+            Header: "Price type code, name",
+            accessor: "priceType",
+          },
+          {
+            Header: "Total",
+            accessor: "total",
+            Aggregated: props => props.value,
+            aggregate: sum
+          },
+        ]
       },
       {
-        Header: "Column 2",
-        accessor: "col2",
+        Header: "PK1",
+        accessor: "pk1"
       },
     ],
     []
@@ -43,23 +118,17 @@ export default function ReactTable() {
   } = useTable({ columns, data });
 
   return (
-    <table {...getTableProps()} style={{ border: "solid 1px blue" }}>
+    <TABLE {...getTableProps()} style={{ borderCollapse: 'collapse'}}>
       <thead>
         {headerGroups.map((headerGroup) => (
           <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column) => (
-              <th
-                {...column.getHeaderProps()}
-                style={{
-                  borderBottom: "solid 3px red",
-                  background: "aliceblue",
-                  color: "black",
-                  fontWeight: "bold",
-                }}
-              >
-                {column.render("Header")}
-              </th>
-            ))}
+            {headerGroup.headers.map((column) => {
+              return (
+                <TH isTotal={column.id === 'total'} isParent={!!column.columns?.length} {...column.getHeaderProps()}>
+                  {column.render("Header")}
+                </TH>
+              );
+            })}
           </tr>
         ))}
       </thead>
@@ -70,23 +139,20 @@ export default function ReactTable() {
           return (
             <tr {...row.getRowProps()}>
               {row.cells.map((cell) => {
+                if (row.index > 0 && ['chargeName', 'chargeCode'].includes(cell.column.id)) {
+                  return <TD_NONE key={cell.column.id}/>
+                }
+
                 return (
-                  <td
-                    {...cell.getCellProps()}
-                    style={{
-                      padding: "10px",
-                      border: "solid 1px gray",
-                      background: "papayawhip",
-                    }}
-                  >
+                  <TD isTotal={cell.column.id === 'total'} {...cell.getCellProps()}>
                     {cell.render("Cell")}
-                  </td>
+                  </TD>
                 );
               })}
             </tr>
           );
         })}
       </tbody>
-    </table>
+    </TABLE>
   );
 }
