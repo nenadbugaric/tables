@@ -32,7 +32,7 @@ export default function MaterialUiTable() {
           </TableHead>
           <TableBody>
             {data.map((row) => (
-              <TableRow key={row.chargeName}>
+              <TableRow key={row.uuid}>
                 <TableCell>{row.chargeName}</TableCell>
                 <TableCell>{row.chargeCode}</TableCell>
                 <TableCell>{row.priceType}</TableCell>
