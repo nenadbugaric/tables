@@ -1,7 +1,7 @@
 import React from "react";
 import MaterialTableComponent from 'material-table';
 
-import data from './data';
+import data from '../rows';
 
 const config = [
   {

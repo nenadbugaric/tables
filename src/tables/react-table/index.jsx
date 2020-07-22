@@ -2,7 +2,7 @@ import React from "react";
 import { useTable } from "react-table";
 import styled from 'styled-components';
 
-import data from './data';
+import data from '../rows';
 
 const TABLE = styled.table`
   border: 1px solid black;
