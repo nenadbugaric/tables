@@ -19,12 +19,14 @@ const TD = styled.td`
   border-bottom: none;
   background: ${({ style }) => style?.background ?? "transparent"};
   color: ${({ style }) => style?.color ?? "black"};
+  font-weight: ${({ style }) => style?.['font-weight'] ?? "400"};
 `;
-const TD_NONE = styled.td`
-  visibility: hidden;
-  border: none;
-  border-right: 1px solid black;
-`;
+
+const config = {
+  total: 2,
+}
+
+const columnSum = (column, rows) => rows.reduce((sum, row) => sum + row.values?.[column], 0);
 
 export default function ReactTable() {
   const columns = React.useMemo(
@@ -32,25 +34,31 @@ export default function ReactTable() {
       {
         Header: "Charge name",
         accessor: "chargeName",
+        Footer: 'Total',
       },
       {
         Header: "Charge code,number",
         accessor: "chargeCode",
+        Footer: '',
       },
       {
         Header: "Price type code, name",
         accessor: "priceType",
+        Footer: '',
       },
       {
         Header: "PK1",
         accessor: "pk1",
+        Footer: data => columnSum('pk1', data.rows),
       },
       {
         Header: "PK2",
         accessor: "pk2",
+        Footer: data => columnSum('pk2', data.rows),
       },
       {
         Header: "Total",
+        uuid: 'horizontalTotal',
         style: {
           background: "red",
           color: "white",
@@ -59,6 +67,7 @@ export default function ReactTable() {
           const columnsToInlude = ["pk1", "pk2"];
           return columnsToInlude.reduce((sum, column) => row[column] + sum, 0);
         },
+        Footer: data => columnSum('Total', data.rows),
       },
     ],
     []
@@ -68,6 +77,7 @@ export default function ReactTable() {
     getTableProps,
     getTableBodyProps,
     headerGroups,
+    footerGroups,
     rows,
     prepareRow,
   } = useTable({ columns, data });
@@ -106,6 +116,18 @@ export default function ReactTable() {
             );
           })}
         </tbody>
+
+        {config.total && (
+          <tfoot>
+          {footerGroups.map(group => (
+            <tr {...group.getFooterGroupProps()}>
+              {group.headers.map(column => (
+                <TD style={column?.style} {...column.getFooterProps()}>{column.render("Footer")}</TD>
+              ))}
+            </tr>
+          ))}
+        </tfoot>
+        )}
       </TABLE>
     </div>
   );
