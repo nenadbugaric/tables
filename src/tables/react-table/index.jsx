@@ -13,6 +13,7 @@ const TH = styled.th`
   border-top: 1px solid black;
   background: ${({ style }) => style?.background ?? "transparent"};
   color: ${({ style }) => style?.color ?? "black"};
+  text-align: ${({ style }) => style?.['text-align'] ?? "left"};
 `;
 const TD = styled.td`
   border: 1px solid black;
@@ -33,7 +34,7 @@ export default function ReactTable() {
     () => [
       {
         Header: "Charge name",
-        accessor: "chargeName",
+        accessor: row => row.chargeName + row.chargeName,
         Footer: 'Total',
       },
       {
@@ -62,6 +63,7 @@ export default function ReactTable() {
         style: {
           background: "red",
           color: "white",
+          'text-align': 'right'
         },
         accessor: (row) => {
           const columnsToInlude = ["pk1", "pk2"];
@@ -81,8 +83,6 @@ export default function ReactTable() {
     rows,
     prepareRow,
   } = useTable({ columns, data });
-
-  console.log("headerGroup.headers: ", headerGroups);
 
   return (
     <div>
@@ -121,9 +121,18 @@ export default function ReactTable() {
           <tfoot>
           {footerGroups.map(group => (
             <tr {...group.getFooterGroupProps()}>
-              {group.headers.map(column => (
-                <TD style={column?.style} {...column.getFooterProps()}>{column.render("Footer")}</TD>
-              ))}
+              {group.headers.map(column => {
+                const style = {
+                  ...column?.style,
+                  background: 'red',
+                  color: 'white',
+                  'text-align': column.Footer && column.Footer !== 'Total' ? 'right' : 'left'
+                };
+
+                return (
+                  <TH style={style} {...column.getFooterProps()}>{column.render("Footer")}</TH>
+                );
+              })}
             </tr>
           ))}
         </tfoot>
