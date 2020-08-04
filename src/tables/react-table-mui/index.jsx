@@ -2,6 +2,7 @@ import React from "react";
 import {useTable} from "react-table";
 import {useRowSpan} from './useRowSpan';
 
+import { TableContainer } from '@material-ui/core';
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import CssBaseline from '@material-ui/core/CssBaseline'
 import MaUTable from '@material-ui/core/Table'
@@ -15,7 +16,7 @@ import data from "../rows";
 
 const useStyles = makeStyles({
   table: {
-    minWidth: 650,
+    minWidth: 800,
     textAlign: 'left'
   },
   td: {
@@ -94,6 +95,7 @@ export default function ReactTableMaterial() {
     <div>
       <CssBaseline />
 
+      <TableContainer>
       <MaUTable className={classes.table} {...getTableProps()} size="small">
         <TableHead>
         {headerGroups.map((headerGroup) => (
@@ -135,6 +137,7 @@ export default function ReactTableMaterial() {
           </TableFooter>
         )}
       </MaUTable>
+      </TableContainer>
     </div>
   );
 }
