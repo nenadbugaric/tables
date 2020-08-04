@@ -28,19 +28,16 @@ const config = [
 
 export default function MaterialTable() {
   return (
-    <div style={{ maxWidth: '100%' }}>
-      <h2>material-table</h2>
-      <MaterialTableComponent
-        options={{
-          search: false,
-          showTitle: false,
-          paging: false,
-          padding: 'dense'
-        }}
-        columns={config}
-        data={data}
-        title="Demo Title"
-      />
-    </div>
+    <MaterialTableComponent
+      options={{
+        search: false,
+        showTitle: false,
+        paging: false,
+        padding: 'dense'
+      }}
+      columns={config}
+      data={data}
+      title="Demo Title"
+    />
   );
 }

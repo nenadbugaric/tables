@@ -27,10 +27,5 @@ export default function RcTable() {
     }
   ];
 
-  return (
-    <div>
-      <h2>rc-table</h2>
-      <Table rowKey="uuid" columns={config} data={data} />
-    </div>
-  );
+  return <Table rowKey="uuid" columns={config} data={data} />
 }

@@ -14,7 +14,7 @@ const TH = styled.th`
   border-top: 1px solid black;
   background: ${({style}) => style?.background ?? "transparent"};
   color: ${({style}) => style?.color ?? "black"};
-  text-align: ${({style}) => style?.['text-align'] ?? "left"};
+  text-align: ${({style}) => style?.textAlign ?? "left"};
 `;
 const TD = styled.td`
   border: 1px solid black;
@@ -69,7 +69,7 @@ export default function ReactTable() {
         style: {
           background: "red",
           color: "white",
-          'text-align': 'right'
+          textAlign: 'right'
         },
         accessor: (row) => {
           const columnsToInlude = ["pk1", "pk2"];
@@ -97,60 +97,57 @@ export default function ReactTable() {
   });
 
   return (
-    <div>
-      <h2>react-table</h2>
-      <TABLE {...getTableProps()} style={{borderCollapse: "collapse"}}>
-        <thead>
-        {headerGroups.map((headerGroup) => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column) => {
+    <TABLE {...getTableProps()} style={{borderCollapse: "collapse"}}>
+      <thead>
+      {headerGroups.map((headerGroup) => (
+        <tr {...headerGroup.getHeaderGroupProps()}>
+          {headerGroup.headers.map((column) => {
+            return (
+              <TH style={column.style} {...column.getHeaderProps()}>
+                {column.render("Header")}
+              </TH>
+            );
+          })}
+        </tr>
+      ))}
+      </thead>
+
+      <tbody {...getTableBodyProps()}>
+      {preparedRows.map((row, i) => (
+        <tr {...row.getRowProps()}>
+          {row.cells.map(cell => {
+            if (cell.isRowSpanned) return null;
+
+            return (
+              <TD rowSpan={cell.rowSpan} style={cell?.column?.style}
+                  {...cell.getCellProps()}>{cell.render('Cell')}
+              </TD>
+            )
+          })}
+        </tr>
+      ))}
+      </tbody>
+
+      {config.total && (
+        <tfoot>
+        {footerGroups.map(group => (
+          <tr {...group.getFooterGroupProps()}>
+            {group.headers.map(column => {
+              const style = {
+                ...column?.style,
+                background: 'red',
+                color: 'white',
+                textAlign: column.Footer && column.Footer !== 'Total' ? 'right' : 'left'
+              };
+
               return (
-                <TH style={column.style} {...column.getHeaderProps()}>
-                  {column.render("Header")}
-                </TH>
+                <TH style={style} {...column.getFooterProps()}>{column.render("Footer")}</TH>
               );
             })}
           </tr>
         ))}
-        </thead>
-
-        <tbody {...getTableBodyProps()}>
-        {preparedRows.map((row, i) => (
-          <tr {...row.getRowProps()}>
-            {row.cells.map(cell => {
-              if (cell.isRowSpanned) return null;
-
-              return (
-                <TD rowSpan={cell.rowSpan} style={cell?.column?.style}
-                    {...cell.getCellProps()}>{cell.render('Cell')}
-                </TD>
-              )
-            })}
-          </tr>
-        ))}
-        </tbody>
-
-        {config.total && (
-          <tfoot>
-          {footerGroups.map(group => (
-            <tr {...group.getFooterGroupProps()}>
-              {group.headers.map(column => {
-                const style = {
-                  ...column?.style,
-                  background: 'red',
-                  color: 'white',
-                  'text-align': column.Footer && column.Footer !== 'Total' ? 'right' : 'left'
-                };
-
-                return (
-                  <TH style={style} {...column.getFooterProps()}>{column.render("Footer")}</TH>
-                );
-              })}
-            </tr>
-          ))}
-          </tfoot>
-        )}
-      </TABLE>
-    </div>
+        </tfoot>
+      )}
+    </TABLE>
   );
 }
