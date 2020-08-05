@@ -2,7 +2,7 @@ import React from "react";
 import {useTable} from "react-table";
 import {useRowSpan} from './useRowSpan';
 
-import { TableContainer } from '@material-ui/core';
+import {TableContainer} from '@material-ui/core';
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import CssBaseline from '@material-ui/core/CssBaseline'
 import MaUTable from '@material-ui/core/Table'
@@ -24,9 +24,9 @@ const useStyles = makeStyles({
   }
 });
 
-const config = {
-  total: 2,
-}
+const aggregations = {
+  0: 'sum',
+};
 
 const columnSum = (column, rows) => rows.reduce((sum, row) => sum + row.values?.[column], 0);
 
@@ -36,30 +36,27 @@ export default function ReactTableMaterial() {
       {
         Header: "Charge name",
         accessor: 'chargeName',
-        Footer: 'Total',
-        enableRowSpan: true
+        enableRowSpan: true,
       },
       {
         Header: "Charge code,number",
         accessor: "chargeCode",
-        Footer: '',
         enableRowSpan: true
       },
       {
         Header: "Price type code, name",
         accessor: "priceType",
-        Footer: '',
         enableRowSpan: true
       },
       {
         Header: "PK1",
         accessor: "pk1",
-        Footer: data => columnSum('pk1', data.rows)
+        agg: true,
       },
       {
         Header: "PK2",
         accessor: "pk2",
-        Footer: data => columnSum('pk2', data.rows)
+        agg: true,
       },
       {
         Header: "Total",
@@ -68,7 +65,7 @@ export default function ReactTableMaterial() {
           const columnsToInlude = ["pk1", "pk2"];
           return columnsToInlude.reduce((sum, column) => row[column] + sum, 0);
         },
-        Footer: data => columnSum('Total', data.rows),
+        agg: true,
       },
     ],
     []
@@ -93,50 +90,56 @@ export default function ReactTableMaterial() {
 
   return (
     <div>
-      <CssBaseline />
+      <CssBaseline/>
 
       <TableContainer>
-      <MaUTable className={classes.table} {...getTableProps()} size="small">
-        <TableHead>
-        {headerGroups.map((headerGroup) => (
-          <TableRow {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column) => (
-              <TableCell key={column.id} {...column.getHeaderProps()}>
-                {column.render("Header")}
-              </TableCell>
+        <MaUTable className={classes.table} {...getTableProps()} size="small">
+          <TableHead>
+            {headerGroups.map((headerGroup) => (
+              <TableRow {...headerGroup.getHeaderGroupProps()}>
+                {headerGroup.headers.map((column) => (
+                  <TableCell style={{ backgroundColor: '#f0f0f0', color: '#404040'}} key={column.id} {...column.getHeaderProps()}>
+                    {column.render("Header")}
+                  </TableCell>
+                ))}
+              </TableRow>
             ))}
-          </TableRow>
-        ))}
-        </TableHead>
+          </TableHead>
 
-        <TableBody {...getTableBodyProps()}>
-        {preparedRows.map((row, i) => (
-          <TableRow {...row.getRowProps()}>
-            {row.cells.map(cell => {
-              if (cell.isRowSpanned) return null;
+          <TableBody {...getTableBodyProps()}>
+            {preparedRows.map((row, i) => (
+              <React.Fragment key={row.id}>
+                <TableRow {...row.getRowProps()}>
+                  {row.cells.map(cell => {
+                    if (cell.isRowSpanned) return null;
 
-              return (
-                <TableCell className={classes.td} key={row.id} rowSpan={cell.rowSpan} {...cell.getCellProps()}>
-                  {cell.render('Cell')}
-                </TableCell>
-              )
-            })}
-          </TableRow>
-        ))}
-        </TableBody>
+                    return (
+                      <TableCell className={classes.td} key={cell.column.id}
+                                 rowSpan={cell.rowSpan} {...cell.getCellProps()}>
+                        {cell.render('Cell')}
+                      </TableCell>
+                    )
+                  })}
+                </TableRow>
 
-        {config.total && (
-          <TableFooter>
-          {footerGroups.map(group => (
-            <TableRow {...group.getFooterGroupProps()}>
-              {group.headers.map(column => (
-                <TableCell {...column.getFooterProps()}>{column.render("Footer")}</TableCell>
-              ))}
-            </TableRow>
-          ))}
-          </TableFooter>
-        )}
-      </MaUTable>
+                {aggregations && i === preparedRows.length - 1 && (
+                  <TableRow>
+                    {row.cells.map((cell, columnIndex) => {
+                      // console.log('rows, cell: ', rows, cell);
+                      return (
+                        <TableCell key={cell.column.id} style={{ backgroundColor: '#e0f5ff', color: '#404040', fontWeight: 800 }}>
+                          {aggregations[columnIndex] && 'Total'}
+
+                          {!aggregations[columnIndex] && cell.column.agg && columnSum(cell.column.id, rows)}
+                        </TableCell>
+                      )
+                    })}
+                  </TableRow>
+                )}
+              </React.Fragment>
+            ))}
+          </TableBody>
+        </MaUTable>
       </TableContainer>
     </div>
   );
