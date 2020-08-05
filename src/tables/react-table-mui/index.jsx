@@ -10,7 +10,6 @@ import TableBody from '@material-ui/core/TableBody'
 import TableCell from '@material-ui/core/TableCell'
 import TableHead from '@material-ui/core/TableHead'
 import TableRow from '@material-ui/core/TableRow'
-import TableFooter from '@material-ui/core/TableFooter'
 
 import data from "../rows";
 
@@ -25,7 +24,7 @@ const useStyles = makeStyles({
 });
 
 const aggregations = {
-  0: 'sum',
+  0: ['sum', 'count'],
 };
 
 const columnSum = (column, rows) => rows.reduce((sum, row) => sum + row.values?.[column], 0);
@@ -122,25 +121,36 @@ export default function ReactTableMaterial() {
                   })}
                 </TableRow>
 
-                {aggregations && i === preparedRows.length - 1 && (
-                  <TableRow>
-                    {row.cells.map((cell, columnIndex) => {
-                      // console.log('rows, cell: ', rows, cell);
-                      return (
-                        <TableCell key={cell.column.id} style={{ backgroundColor: '#e0f5ff', color: '#404040', fontWeight: 800 }}>
-                          {aggregations[columnIndex] && 'Total'}
-
-                          {!aggregations[columnIndex] && cell.column.agg && columnSum(cell.column.id, rows)}
-                        </TableCell>
-                      )
-                    })}
-                  </TableRow>
-                )}
+                <AggRows rowIndex={i} cells={row.cells} rows={rows} aggregations={aggregations}  />
               </React.Fragment>
             ))}
           </TableBody>
         </MaUTable>
       </TableContainer>
     </div>
+  );
+}
+
+const AggRows = ({ cells, rows, aggregations, rowIndex }) => {
+  if (!aggregations || rowIndex !== rows.length - 1) return null;
+
+  // const minAggIndes = Math.min(...Object.keys(aggregations).map(parseInt));
+
+  return (
+    aggregations[0].map(aggFunc => (
+      <TableRow key={aggFunc}>
+        {cells.map((cell, columnIndex) => {
+          return (
+            <TableCell key={cell.column.id} style={{ backgroundColor: '#e0f5ff', color: '#404040', fontWeight: 800 }}>
+              {aggregations[columnIndex] && aggFunc === 'sum' && 'Total'}
+              {aggregations[columnIndex] && aggFunc === 'count' && 'Count'}
+
+              {!aggregations[columnIndex] && cell.column.agg && aggFunc === "sum" && columnSum(cell.column.id, rows)}
+              {!aggregations[columnIndex] && cell.column.agg && aggFunc === "count" && rows.length}
+            </TableCell>
+          )
+        })}
+      </TableRow>
+    ))
   );
 }
