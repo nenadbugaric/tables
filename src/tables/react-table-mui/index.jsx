@@ -23,10 +23,6 @@ const useStyles = makeStyles({
   }
 });
 
-const aggregations = {
-  0: ['sum', 'count'],
-};
-
 const columnSum = (column, rows) => rows.reduce((sum, row) => sum + row.values?.[column], 0);
 
 export default function ReactTableMaterial() {
@@ -78,7 +74,18 @@ export default function ReactTableMaterial() {
     rows,
     prepareRow,
     spanRow,
-  } = useTable({columns, data}, useRowSpan);
+    state,
+  } = useTable({
+    columns,
+    data,
+    initialState: {
+      aggregations: {
+        0: ['sum', 'count'],
+        1: ['sum'],
+        2: ['sum', 'count'],
+      }
+    }
+  }, useRowSpan);
 
   const preparedRows = rows.map((row, i) => {
     prepareRow(row);
@@ -97,7 +104,8 @@ export default function ReactTableMaterial() {
             {headerGroups.map((headerGroup) => (
               <TableRow {...headerGroup.getHeaderGroupProps()}>
                 {headerGroup.headers.map((column) => (
-                  <TableCell style={{ backgroundColor: '#f0f0f0', color: '#404040'}} key={column.id} {...column.getHeaderProps()}>
+                  <TableCell style={{backgroundColor: '#f0f0f0', color: '#404040'}}
+                             key={column.id} {...column.getHeaderProps()}>
                     {column.render("Header")}
                   </TableCell>
                 ))}
@@ -110,7 +118,9 @@ export default function ReactTableMaterial() {
               <React.Fragment key={row.id}>
                 <TableRow {...row.getRowProps()}>
                   {row.cells.map(cell => {
-                    if (cell.isRowSpanned) return null;
+                    if (cell.isRowSpanned) {
+                      return <TableCell className={classes.td} key={cell.column.id}></TableCell>
+                    }
 
                     return (
                       <TableCell className={classes.td} key={cell.column.id}
@@ -121,7 +131,8 @@ export default function ReactTableMaterial() {
                   })}
                 </TableRow>
 
-                <AggRows rowIndex={i} cells={row.cells} rows={rows} aggregations={aggregations}  />
+                <AggRows rowIndex={i} cells={row.cells} rows={rows}
+                         aggregations={state.aggregations}/>
               </React.Fragment>
             ))}
           </TableBody>
@@ -131,26 +142,47 @@ export default function ReactTableMaterial() {
   );
 }
 
-const AggRows = ({ cells, rows, aggregations, rowIndex }) => {
-  if (!aggregations || rowIndex !== rows.length - 1) return null;
+const AggRows = ({cells, rows, aggregations, rowIndex}) => {
+  const nextRowCells = rows[rowIndex + 1]?.cells;
+  const configColumnsToAggregate = Object.keys(aggregations).map(b => Number.parseInt(b, 10));
 
-  // const minAggIndes = Math.min(...Object.keys(aggregations).map(parseInt));
+  const rowColumnsToAggregate = cells
+    .map((cell, cellIndex) => (
+      cell.isRowSpanned && !nextRowCells?.[cellIndex]?.isRowSpanned
+        ? cellIndex
+        : null
+    ))
+    .filter(ind => ind !== null);
+
+  if (!rowColumnsToAggregate.length || !configColumnsToAggregate.some(ind => rowColumnsToAggregate.includes(ind))) return null;
+
+  const rowColumnsToAggregateDesc = [...rowColumnsToAggregate].sort((a, b) => b - a);
 
   return (
-    aggregations[0].map(aggFunc => (
-      <TableRow key={aggFunc}>
-        {cells.map((cell, columnIndex) => {
-          return (
-            <TableCell key={cell.column.id} style={{ backgroundColor: '#e0f5ff', color: '#404040', fontWeight: 800 }}>
-              {aggregations[columnIndex] && aggFunc === 'sum' && 'Total'}
-              {aggregations[columnIndex] && aggFunc === 'count' && 'Count'}
+    rowColumnsToAggregateDesc.map(cellAggIndex => (
+      aggregations[cellAggIndex].map(aggFunc => (
+        <TableRow key={aggFunc}>
+          {cells.map((cell, columnIndex) => {
+            if (columnIndex < cellAggIndex) {
+              return <TableCell key={cell.column.id}></TableCell>;
+            }
 
-              {!aggregations[columnIndex] && cell.column.agg && aggFunc === "sum" && columnSum(cell.column.id, rows)}
-              {!aggregations[columnIndex] && cell.column.agg && aggFunc === "count" && rows.length}
-            </TableCell>
-          )
-        })}
-      </TableRow>
-    ))
-  );
+            const minRow = cells[cellAggIndex].column.mins[rowIndex] || 0;
+            const aggRows = rows.slice(minRow, rowIndex + 1);
+            // console.log(rows.slice(cells[cellAggIndex]?.mins[rowIndex]), rowIndex)
+
+            return (
+              <TableCell key={cell.column.id}
+                         style={{backgroundColor: '#e0f5ff', color: '#404040', fontWeight: 800}}>
+                {aggregations[cellAggIndex] && aggFunc === 'sum' && cellAggIndex === columnIndex && 'Total'}
+                {aggregations[cellAggIndex] && aggFunc === 'count' && cellAggIndex === columnIndex && 'Count'}
+
+                {aggregations[cellAggIndex] && cell.column.agg && aggFunc === "sum" && columnSum(cell.column.id, aggRows)}
+                {aggregations[cellAggIndex] && cell.column.agg && aggFunc === "count" && aggRows.length}
+              </TableCell>
+            )
+          })}
+        </TableRow>
+      ))
+    )));
 }
