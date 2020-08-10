@@ -33,7 +33,7 @@ export default [
   },
   {
     uuid: '5',
-    chargeName: "Vorverkaufsgebühr 2",
+    chargeName: "Vorverkaufsgebühr",
     chargeCode: "VVG-C, 4",
     priceType: "KIND, Kind",
     pk1: 99,
@@ -41,9 +41,9 @@ export default [
   },
   {
     uuid: '6',
-    chargeName: "Vorverkaufsgebühr 2",
+    chargeName: "Vorverkaufsgebühr",
     chargeCode: "VVG-C, 4",
-    priceType: "KIND, Kind asdfas",
+    priceType: "KIND, Kind",
     pk1: 29,
     pk2: 244
   },
