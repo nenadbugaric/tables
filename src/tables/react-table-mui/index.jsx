@@ -1,15 +1,19 @@
 import React from "react";
-import {useTable, useSortBy} from "react-table";
-import {useRowSpan} from './useRowSpan';
+import {useTable, useSortBy, useColumnOrder} from "react-table";
+import {useTotals} from './useTotals';
 
-import {TableContainer} from '@material-ui/core';
-import makeStyles from '@material-ui/core/styles/makeStyles';
-import CssBaseline from '@material-ui/core/CssBaseline'
 import MaUTable from '@material-ui/core/Table'
+import TableRow from '@material-ui/core/TableRow'
+import {TableContainer} from '@material-ui/core';
 import TableBody from '@material-ui/core/TableBody'
 import TableCell from '@material-ui/core/TableCell'
 import TableHead from '@material-ui/core/TableHead'
-import TableRow from '@material-ui/core/TableRow'
+import CssBaseline from '@material-ui/core/CssBaseline'
+import makeStyles from '@material-ui/core/styles/makeStyles';
+
+import SortIcon from '@material-ui/icons/Sort';
+
+import ContextMenu from './ContextMenu';
 
 import data from "../rows";
 
@@ -37,22 +41,25 @@ export default function ReactTableMaterial() {
       {
         Header: "Charge name",
         accessor: 'chargeName',
-        enableRowSpan: true
+        enableRowSpan: true,
+        disableSortBy: true,
       },
       {
         Header: "Charge code,number",
         accessor: "chargeCode",
-        enableRowSpan: true
+        enableRowSpan: true,
+        disableSortBy: true
       },
       {
         Header: "Price type code, name",
         accessor: "priceType",
-        enableRowSpan: true
+        enableRowSpan: true,
+        disableSortBy: true
       },
       {
         Header: "PK1",
         accessor: "pk1",
-        agg: true,
+        enableTotal: true,
       },
       {
         Header: "PK2",
@@ -61,28 +68,16 @@ export default function ReactTableMaterial() {
       {
         Header: "Total",
         isTotal: true,
-        uuid: 'horizontalTotal',
+        id: 'total',
         accessor: (row) => {
-          const columnsToInlude = ["pk1", "pk2"];
-          return columnsToInlude.reduce((sum, column) => row[column] + sum, 0);
+          const columnsToInclude = ["pk1", "pk2"];
+          return columnsToInclude.reduce((sum, column) => row[column] + sum, 0);
         },
-        agg: true,
+        enableTotal: true,
       },
     ],
     []
   );
-
-  const instance = useTable({
-    columns,
-    data,
-    initialState: {
-      aggregations: {
-        0: ['sum', 'count'],
-        1: ['sum'],
-        2: ['sum', 'avg', 'count'],
-      }
-    }
-  }, useSortBy, useRowSpan);
 
   const {
     getTableProps,
@@ -92,8 +87,23 @@ export default function ReactTableMaterial() {
     prepareRow,
     spanRow,
     state,
-    columns: finalColumns
-  } = instance;
+    columns: finalColumns,
+    setColumnOrder
+  } = useTable({
+    columns,
+    data,
+    initialState: {
+      totals: {
+        config: {
+          0: ['sum', 'count'],
+          1: ['sum'],
+          2: ['sum', 'avg', 'count'],
+        },
+        order: [0, 1, 2]
+      },
+      columnOrder: columns.map(column => column.id || column.accessor)
+    }
+  }, useColumnOrder, useSortBy, useTotals);
 
   const preparedRows = rows.map((row, i) => {
     prepareRow(row);
@@ -103,6 +113,16 @@ export default function ReactTableMaterial() {
   const isTableSorted = finalColumns.some(column => column.isSorted);
 
   const classes = useStyles();
+
+  const moveRight = () => {
+    const last = state.columnOrder.pop();
+    setColumnOrder([last, ...state.columnOrder])
+  }
+
+  const moveLeft = () => {
+    const [first, ...rest] = state.columnOrder;
+    setColumnOrder([...rest, first])
+  }
 
   return (
     <div>
@@ -121,15 +141,27 @@ export default function ReactTableMaterial() {
                   return (
                     <TableCell
                       className={style}
-                      key={column.id} {...column.getHeaderProps(column.getSortByToggleProps())}>
+                      key={column.id} {...column.getHeaderProps()}>
+                      <ContextMenu
+                        items={[{
+                          label: 'Move Right',
+                          onClick: moveRight
+                        }, {
+                          label: 'Move Left',
+                          onClick: moveLeft
+                        }]}
+                      >
                       {column.render("Header")}
-                      <span>
-                    {column.isSorted
-                      ? column.isSortedDesc
-                        ? ' 🔽'
-                        : ' 🔼'
-                      : ''}
-                  </span>
+                        {' '}
+                        {column.canSort && <SortIcon onClick={column.getSortByToggleProps()?.onClick}  />}
+                      {/*<span>*/}
+                      {/*  {column.isSorted*/}
+                      {/*    ? column.isSortedDesc*/}
+                      {/*      ? ' 🔽'*/}
+                      {/*      : ' 🔼'*/}
+                      {/*    : ''}*/}
+                      {/*</span>*/}
+                      </ContextMenu>
                     </TableCell>
                   );
                 })}
@@ -160,7 +192,7 @@ export default function ReactTableMaterial() {
                 </TableRow>
 
                 <AggRows rowIndex={i} cells={row.cells} rows={rows} isTableSorted={isTableSorted}
-                         aggregations={state.aggregations}/>
+                         totals={state.totals}/>
               </React.Fragment>
             ))}
           </TableBody>
@@ -170,32 +202,35 @@ export default function ReactTableMaterial() {
   );
 }
 
-const getAggColumns = (rows, rowIndex, cells, aggregations) => {
+const getAggColumns = (rows, rowIndex, cells, totals) => {
   const nextRowCells = rows[rowIndex + 1]?.cells;
-  const configColumnsToAggregate = Object.keys(aggregations).map(b => Number.parseInt(b, 10));
+  const configColumnsToAggregate = totals.order;
 
-  const rowColumnsToAggregate = cells
-    .map((cell, cellIndex) => (
-      cell.isRowSpanned && !nextRowCells?.[cellIndex]?.isRowSpanned
-        ? cellIndex
+  const rowColumnsToAggregate = configColumnsToAggregate
+    .map(columnIndex => (
+      cells[columnIndex]?.isRowSpanned && !nextRowCells?.[columnIndex]?.isRowSpanned
+      || !cells[columnIndex]?.isRowSpanned && !nextRowCells?.[columnIndex]?.isRowSpanned
+        ? columnIndex
         : null
     ))
     .filter(ind => ind !== null);
 
   if (!rowColumnsToAggregate.length || !configColumnsToAggregate.some(ind => rowColumnsToAggregate.includes(ind))) return null;
-
-  return [...rowColumnsToAggregate].sort((a, b) => b - a);
+  // console.log('rowColumnsToAggregate inner: ', rowColumnsToAggregate)
+  return configColumnsToAggregate.filter(ind => rowColumnsToAggregate.includes(ind)).sort((a, b) => b - a);
 };
 
-const AggRows = ({cells, rows, aggregations, rowIndex, isTableSorted}) => {
+const AggRows = ({cells, rows, totals, rowIndex, isTableSorted}) => {
   if (isTableSorted) return null;
 
-  const rowColumnsToAggregateDesc = getAggColumns(rows, rowIndex, cells, aggregations);
+  const rowColumnsToAggregateDesc = getAggColumns(rows, rowIndex, cells, totals);
   if (!rowColumnsToAggregateDesc) return null;
+
+  // console.log('rowColumnsToAggregateDesc: ', rowColumnsToAggregateDesc);
 
   return (
     rowColumnsToAggregateDesc.map(cellAggIndex => (
-      aggregations[cellAggIndex].map(aggFunc => (
+      totals.config[cellAggIndex].map(aggFunc => (
         <TableRow key={aggFunc}>
           {cells.map((cell, columnIndex) => {
             if (columnIndex < cellAggIndex) {
@@ -206,15 +241,14 @@ const AggRows = ({cells, rows, aggregations, rowIndex, isTableSorted}) => {
             const aggRows = rows.slice(minRow, rowIndex + 1);
 
             return (
-              <TableCell key={cell.column.id}
-                         style={{backgroundColor: '#e0f5ff', color: '#404040', fontWeight: 800}}>
-                {aggregations[cellAggIndex] && aggFunc === 'sum' && cellAggIndex === columnIndex && 'Total'}
-                {aggregations[cellAggIndex] && aggFunc === 'count' && cellAggIndex === columnIndex && 'Count'}
-                {aggregations[cellAggIndex] && aggFunc === 'avg' && cellAggIndex === columnIndex && 'Average'}
+              <TableCell key={cell.column.id} style={{backgroundColor: '#e0f5ff', color: '#404040', fontWeight: 800}}>
+                {aggFunc === 'sum' && cellAggIndex === columnIndex && 'Total'}
+                {aggFunc === 'count' && cellAggIndex === columnIndex && 'Count'}
+                {aggFunc === 'avg' && cellAggIndex === columnIndex && 'Average'}
 
-                {aggregations[cellAggIndex] && cell.column.agg && aggFunc === "sum" && columnSum(cell.column.id, aggRows)}
-                {aggregations[cellAggIndex] && cell.column.agg && aggFunc === "avg" && columnAvg(cell.column.id, aggRows)}
-                {aggregations[cellAggIndex] && cell.column.agg && aggFunc === "count" && aggRows.length}
+                {cellAggIndex !== columnIndex && cell.column.enableTotal && aggFunc === "sum" && columnSum(cell.column.id, aggRows)}
+                {cellAggIndex !== columnIndex && cell.column.enableTotal && aggFunc === "avg" && columnAvg(cell.column.id, aggRows)}
+                {cellAggIndex !== columnIndex && cell.column.enableTotal && aggFunc === "count" && aggRows.length}
               </TableCell>
             )
           })}
