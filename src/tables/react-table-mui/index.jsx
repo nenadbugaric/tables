@@ -1,5 +1,5 @@
 import React from "react";
-import {useTable, useSortBy, useColumnOrder} from "react-table";
+import {useTable, useSortBy, useColumnOrder, usePagination} from "react-table";
 import {useTotals} from './useTotals';
 
 import MaUTable from '@material-ui/core/Table'
@@ -15,7 +15,7 @@ import SortIcon from '@material-ui/icons/Sort';
 
 import ContextMenu from './ContextMenu';
 
-import data from "../rows";
+import {rows as data} from './makeData';
 
 const useStyles = makeStyles({
   table: {
@@ -34,6 +34,11 @@ const useStyles = makeStyles({
 
 const columnSum = (column, rows) => rows.reduce((sum, row) => sum + row.values?.[column], 0);
 const columnAvg = (column, rows) => columnSum(column, rows) / rows.length;
+
+const horizontalTotal = (row) => {
+  const columnsToInclude = ["pk1", "pk2"];
+  return columnsToInclude.reduce((sum, column) => row[column] + sum, 0);
+};
 
 export default function ReactTableMaterial() {
   const columns = React.useMemo(
@@ -69,10 +74,7 @@ export default function ReactTableMaterial() {
         Header: "Total",
         isTotal: true,
         id: 'total',
-        accessor: (row) => {
-          const columnsToInclude = ["pk1", "pk2"];
-          return columnsToInclude.reduce((sum, column) => row[column] + sum, 0);
-        },
+        accessor: horizontalTotal,
         enableTotal: true,
       },
     ],
@@ -88,7 +90,16 @@ export default function ReactTableMaterial() {
     spanRow,
     state,
     columns: finalColumns,
-    setColumnOrder
+    setColumnOrder,
+    page,
+    canPreviousPage,
+    canNextPage,
+    pageOptions,
+    pageCount,
+    gotoPage,
+    nextPage,
+    previousPage,
+    setPageSize
   } = useTable({
     columns,
     data,
@@ -103,9 +114,11 @@ export default function ReactTableMaterial() {
       },
       columnOrder: columns.map(column => column.id || column.accessor)
     }
-  }, useColumnOrder, useSortBy, useTotals);
+  }, useColumnOrder, useSortBy, usePagination, useTotals);
 
-  const preparedRows = rows.map((row, i) => {
+  const { pageIndex, pageSize } = state;
+
+  const preparedRows = page.map((row, i) => {
     prepareRow(row);
     return spanRow(row, i);
   });
@@ -198,6 +211,51 @@ export default function ReactTableMaterial() {
           </TableBody>
         </MaUTable>
       </TableContainer>
+
+      <div className="pagination">
+        <button onClick={() => gotoPage(0)} disabled={!canPreviousPage}>
+          {'<<'}
+        </button>{' '}
+        <button onClick={() => previousPage()} disabled={!canPreviousPage}>
+          {'<'}
+        </button>{' '}
+        <button onClick={() => nextPage()} disabled={!canNextPage}>
+          {'>'}
+        </button>{' '}
+        <button onClick={() => gotoPage(pageCount - 1)} disabled={!canNextPage}>
+          {'>>'}
+        </button>{' '}
+        <span>
+          Page{' '}
+          <strong>
+            {pageIndex + 1} of {pageOptions.length}
+          </strong>{' '}
+        </span>
+        <span>
+          | Go to page:{' '}
+          <input
+            type="number"
+            defaultValue={pageIndex + 1}
+            onChange={e => {
+              const page = e.target.value ? Number(e.target.value) - 1 : 0
+              gotoPage(page)
+            }}
+            style={{ width: '100px' }}
+          />
+        </span>{' '}
+        <select
+          value={pageSize}
+          onChange={e => {
+            setPageSize(Number(e.target.value))
+          }}
+        >
+          {[10, 20, 30, 40, 50, 100, 200].map(pageSize => (
+            <option key={pageSize} value={pageSize}>
+              Show {pageSize}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
@@ -220,13 +278,11 @@ const getAggColumns = (rows, rowIndex, cells, totals) => {
   return configColumnsToAggregate.filter(ind => rowColumnsToAggregate.includes(ind)).sort((a, b) => b - a);
 };
 
-const AggRows = ({cells, rows, totals, rowIndex, isTableSorted}) => {
+const AggRows = React.memo(({cells, rows, totals, rowIndex, isTableSorted}) => {
   if (isTableSorted) return null;
 
   const rowColumnsToAggregateDesc = getAggColumns(rows, rowIndex, cells, totals);
   if (!rowColumnsToAggregateDesc) return null;
-
-  // console.log('rowColumnsToAggregateDesc: ', rowColumnsToAggregateDesc);
 
   return (
     rowColumnsToAggregateDesc.map(cellAggIndex => (
@@ -255,4 +311,4 @@ const AggRows = ({cells, rows, totals, rowIndex, isTableSorted}) => {
         </TableRow>
       ))
     )));
-}
+});
